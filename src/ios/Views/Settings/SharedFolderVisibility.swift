@@ -6,7 +6,7 @@
 //  (shared / skills / memory) should appear in the iOS Files app.
 //  Both the main app process and the FileProvider extension read this.
 //
-//  Backing store: App Group UserDefaults (`group.com.openminis.app`) so
+//  Backing store: App Group UserDefaults (`group.com.arekert.minis`) so
 //  the FileProvider extension sees the same state as the main app.
 //
 //  Semantics:
@@ -23,7 +23,7 @@ enum SharedFolderVisibility {
     /// Must match FileProviderExtension.topLevelSubdirs.
     static let allFolderNames: [String] = ["shared", "skills", "memory"]
 
-    private static let appGroupID = "group.com.openminis.app"
+    private static let appGroupID = "group.com.arekert.minis"
     private static let userDefaultsKeyPrefix = "fileProviderVisible."
 
     private static var store: UserDefaults {
