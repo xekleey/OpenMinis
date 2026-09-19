@@ -4722,35 +4722,45 @@ struct AIChatView: View {
 /// fill and BOTH shadows byte-for-byte, including the dark-mode-only top shadow
 /// that lifts the bar off the message list.
 private struct ComposerSurface: ViewModifier {
-    /// Corner radius floor for the glass shape. `.concentric` derives the real
-    /// radius from the container so the card stays concentric with whatever
-    /// holds it; the minimum only guarantees it never collapses to a sharp rect.
-    private static let cornerMinimum: CGFloat = 20
+    /// One fixed radius, shared by the glass and the clip.
+    ///
+    /// These were briefly `.rect(corners: .concentric(...))`. `.concentric`
+    /// derives its radius from the enclosing container, which does not agree
+    /// with the card's own `.contentShape(RoundedRectangle(cornerRadius: 20))`
+    /// (the tap target in `inputBar`) — the glass's edge highlight then lands on
+    /// a different corner than the content it wraps and reads visibly wrong.
+    /// A fixed radius keeps the material, the clip and the tap shape identical.
+    private static let cornerRadius: CGFloat = 20
 
-    /// The shape on the pre-iOS-26 path, which cannot use `ConcentricRectangle`.
-    private var legacyShape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: Self.cornerMinimum, style: .continuous)
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
     }
 
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
-            // One container for the card glass AND every chip sitting on it.
-            // Without it the two layers refract each other and the card goes
-            // murky wherever a chip overlaps; `spacing: 4` keeps the chips from
-            // melting into the card face — the Swiftchat §3.2 finding. The
-            // chips live inside `content`, so they are collected here rather
-            // than each needing its own container.
+            // The container is here for the CHIPS: they are glass too, and
+            // without it the two layers refract each other where they overlap
+            // on the card face. `spacing: 4` keeps them from melting into it.
             GlassEffectContainer(spacing: 4) {
                 content
-                    // `.interactive()` — without it the card is inert glass: no
-                    // press response when tapping to focus the field.
-                    .glassEffect(.regular.interactive(), in: .rect(corners: .concentric(minimum: .fixed(Self.cornerMinimum))))
-                    .clipShape(.rect(corners: .concentric(minimum: .fixed(Self.cornerMinimum))))
+                    // `.interactive()` for the press response — without it the
+                    // card is inert glass and tapping it to focus the field
+                    // gives nothing back.
+                    //
+                    // It renders a highlight, which is exactly why the shape
+                    // above is FIXED and shared with `clipShape`: the highlight
+                    // traces whatever shape `glassEffect` was handed. While this
+                    // was `.concentric` it derived its radius from the enclosing
+                    // container, disagreed with the card's own
+                    // `contentShape(RoundedRectangle(cornerRadius: 20))`, and
+                    // the highlight drew on a corner the card does not have.
+                    .glassEffect(.regular.interactive(), in: shape)
+                    .clipShape(shape)
             }
         } else {
             content
-                .background(legacyShape.fill(ChatColors.inputBg))
-                .clipShape(legacyShape)
+                .background(shape.fill(ChatColors.inputBg))
+                .clipShape(shape)
                 .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 2)
                 .shadow(color: Color(UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 0, alpha: 0.5) : UIColor(white: 0, alpha: 0) }), radius: 8, x: 0, y: -4)
         }
