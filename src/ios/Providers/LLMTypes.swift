@@ -844,15 +844,22 @@ enum ThinkingLevel: String, Codable, Hashable, CaseIterable, Comparable {
         allCases.firstIndex(of: lhs)! < allCases.firstIndex(of: rhs)!
     }
 
+    /// Deliberately NOT localized — these are the provider APIs' own terms.
+    ///
+    /// The tiers name what actually goes on the wire (`reasoning_effort`,
+    /// `output_config.effort`), so "High" / "Max" are the canonical labels
+    /// rather than a translation of them. Localizing them made a Chinese system
+    /// read "高 / 极高", which hides the mapping to the value being sent and is
+    /// what the raw API and every provider's docs call these tiers.
     var displayName: String {
         switch self {
-        case .off: return AppLocalized("Off")
-        case .low: return AppLocalized("Low")
-        case .medium: return AppLocalized("Med")
-        case .high: return AppLocalized("High")
-        case .xhigh: return AppLocalized("XHigh")
-        case .max: return AppLocalized("Max")
-        case .ultra: return AppLocalized("Ultra")
+        case .off: return "Off"
+        case .low: return "Low"
+        case .medium: return "Med"
+        case .high: return "High"
+        case .xhigh: return "XHigh"
+        case .max: return "Max"
+        case .ultra: return "Ultra"
         }
     }
 

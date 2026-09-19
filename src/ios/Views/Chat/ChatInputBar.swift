@@ -1861,3 +1861,82 @@ private extension UIView {
         return nil
     }
 }
+
+// MARK: - Glass Controls (Liquid Glass)
+
+/// Small glass controls that sit ON TOP of the composer's glass card — the
+/// `+`, `/`, thinking-intensity and edit-exit controls.
+///
+/// Ported from the Swiftchat project's `UI/GlassChip.swift`, which measured the
+/// constraints on an iPhone 17 Pro (402pt wide):
+///
+/// **Why not `.buttonStyle(.glass)`.** The system glass button carries ~26pt of
+/// horizontal padding, so four side by side need 414pt while the card offers
+/// 350pt — the widest text label gets squeezed to a few characters. Drawing the
+/// capsule ourselves with `.glassEffect` and 6pt of padding brings four chips to
+/// 362pt: the 12pt comes out of the text label, which truncates in the middle,
+/// while numerals and icons always stay whole.
+///
+/// **`.interactive()` is not optional.** Custom glass is inert without it — no
+/// press response at all, a dead pane of glass.
+///
+/// **Glass wraps content only.** The capsule is about one line of text plus 5pt
+/// above and below. Nothing else is stacked around it: the button is exactly as
+/// big as it draws.
+extension View {
+    /// Capsule glass for a text/icon chip.
+    ///
+    /// Branches internally rather than at each call site, so every composer
+    /// control reads the same where it is used: real Liquid Glass on iOS 26+,
+    /// and below it the flat fill these controls shipped with — the pre-26
+    /// layout stays what it was.
+    @ViewBuilder
+    func glassChip() -> some View {
+        if #available(iOS 26.0, *) {
+            self
+                .padding(.horizontal, 6)
+                .padding(.vertical, 5)
+                .glassEffect(.regular.interactive(), in: .capsule)
+                // Hit shape = the capsule that was drawn, no more: `.rect`
+                // would also swallow the four corners outside it.
+                .contentShape(.capsule)
+        } else {
+            self
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(ChatColors.inputIconBg)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(ChatColors.inputIconBorder, lineWidth: 0.5))
+        }
+    }
+
+    /// Circular glass icon control (`+`, `/` on the card face) — the same glass
+    /// as `glassChip`, only the shape differs.
+    @ViewBuilder
+    func glassCircleControl(diameter: CGFloat = 34) -> some View {
+        if #available(iOS 26.0, *) {
+            self
+                .frame(width: diameter, height: diameter)
+                .glassEffect(.regular.interactive(), in: .circle)
+                // Same reasoning: what you hit is the 34pt circle itself.
+                .contentShape(.circle)
+        } else {
+            self
+                .frame(width: diameter, height: diameter)
+                .background(ChatColors.inputIconBg)
+                .clipShape(Circle())
+                .overlay(Circle().stroke(ChatColors.inputIconBorder, lineWidth: 0.5))
+        }
+    }
+}
+
+/// Button style for glass chips: **no press dimming** — touch feedback belongs
+/// to the glass's own `.interactive()`. A custom `ButtonStyle` does not degrade
+/// `disabled` on its own, so that is all this handles.
+struct GlassChipButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label.opacity(isEnabled ? 1 : 0.35)
+    }
+}

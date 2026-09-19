@@ -3180,11 +3180,8 @@ struct AIChatView: View {
         let icon = Image(systemName: "plus")
             .font(.system(size: 18, weight: .medium))
             .foregroundStyle(ChatColors.secondaryText)
-            .frame(width: 34, height: 34)
             .accessibilityLabel(Text("Add attachment", comment: "VoiceOver label for the attachment button"))
-            .background(ChatColors.inputIconBg)
-            .clipShape(Circle())
-            .overlay(Circle().stroke(ChatColors.inputIconBorder, lineWidth: 0.5))
+            .glassCircleControl()
 
         if #available(iOS 17, *) {
             Menu {
@@ -3194,6 +3191,11 @@ struct AIChatView: View {
             } label: {
                 icon
             }
+            // `.menuStyle(.button)` is what routes the label through
+            // `buttonStyle` — Apple's replacement note for
+            // `BorderlessButtonMenuStyle` names exactly this pairing.
+            .menuStyle(.button)
+            .buttonStyle(GlassChipButtonStyle())
         } else {
             Button { showAttachmentMenu = true } label: {
                 icon
@@ -3206,7 +3208,9 @@ struct AIChatView: View {
         }
     }
 
-    /// Bottom toolbar under the text field (+ / edit-exit / mic / send).
+    /// Bottom toolbar under the text field (+ / slash / edit-exit / thinking).
+    /// The send button is NOT here — it sits in `composerBody` to the right of
+    /// the field, vertically centred against the field's two-line box.
     /// Returns AnyView to keep `inputBar`'s generic type compact; SwiftUI
     /// runtime demangle chokes on deep nested types otherwise.
     private var inputBottomRow: AnyView {
@@ -3223,7 +3227,6 @@ struct AIChatView: View {
                 Spacer()
             }
             thinkingLevelMenuButton
-            sendButton
         }
         return AnyView(row)
     }
@@ -3263,12 +3266,11 @@ struct AIChatView: View {
                         .font(.system(size: 13, weight: .medium))
                 }
                 .foregroundStyle(ChatColors.secondaryText)
-                .padding(.horizontal, 10)
-                .frame(height: 34)
-                .background(ChatColors.inputIconBg)
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(ChatColors.inputIconBorder, lineWidth: 0.5))
+                .glassChip()
             }
+            .menuStyle(.button)
+            .buttonStyle(GlassChipButtonStyle())
+            .fixedSize(horizontal: true, vertical: false)
             .accessibilityLabel(Text("Thinking intensity: \(level.displayName)"))
         }
     }
@@ -3362,11 +3364,9 @@ struct AIChatView: View {
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                 .italic()
                 .foregroundStyle(ChatColors.secondaryText)
-                .frame(width: 34, height: 34)
-                .background(ChatColors.inputIconBg)
-                .clipShape(Circle())
-                .overlay(Circle().stroke(ChatColors.inputIconBorder, lineWidth: 0.5))
+                .glassCircleControl()
         }
+        .buttonStyle(GlassChipButtonStyle())
     }
 
     /// "Exit Edit Mode" capsule shown while editing a past message.
@@ -3377,12 +3377,9 @@ struct AIChatView: View {
             Text("Exit Edit Mode", comment: "Cancel message editing")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(ChatColors.secondaryText)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(ChatColors.inputIconBg)
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(ChatColors.inputIconBorder, lineWidth: 0.5))
+                .glassChip()
         }
+        .buttonStyle(GlassChipButtonStyle())
     }
 
     /// Speech language badge shown only while recording.
@@ -3423,38 +3420,51 @@ struct AIChatView: View {
         }, isVoiceActive: voiceInputActive)
     }
 
-    /// Send / Enqueue / Stop circular button.
+    /// Send / Enqueue / Stop, as a Liquid Glass circle to the right of the field
+    /// and vertically centred against the field's two-line box.
+    ///
+    /// The glyphs are the bare `arrow.up` / `stop.fill` rather than the old
+    /// `arrow.up.circle.fill`: the glass supplies the circle now, and a circled
+    /// glyph inside a glass circle reads as two outlines.
     ///
     /// [T-ios-voiceover-labels] All three states are icon-only, and two of them
     /// (send / enqueue) use the SAME glyph, so without explicit labels
-    /// VoiceOver reads "arrow up circle fill" for both and a blind user cannot
-    /// tell what pressing it will do. Each branch therefore names its own
-    /// action; the destructive one also carries a hint.
+    /// VoiceOver reads "arrow up" for both and a blind user cannot tell what
+    /// pressing it will do. Each branch therefore names its own action; the
+    /// destructive one also carries a hint.
+    private static let sendButtonDiameter: CGFloat = 36
+
     @ViewBuilder
     private var sendButton: some View {
         if vm.isProcessing && canEnqueue {
             Button { performEnqueue() } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 34))
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(ChatColors.sendButton)
+                    .glassCircleControl(diameter: Self.sendButtonDiameter)
             }
+            .buttonStyle(GlassChipButtonStyle())
             .keyboardShortcut(.return, modifiers: .command)
             .accessibilityLabel(Text("Add to queue", comment: "VoiceOver label for the send button while a reply is generating"))
             .accessibilityHint(Text("Queues this message to send after the current reply finishes", comment: "VoiceOver hint for the queue button"))
         } else if vm.isProcessing {
             Button { vm.cancel() } label: {
-                Image(systemName: "stop.circle.fill")
-                    .font(.system(size: 34))
+                Image(systemName: "stop.fill")
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(.red)
+                    .glassCircleControl(diameter: Self.sendButtonDiameter)
             }
+            .buttonStyle(GlassChipButtonStyle())
             .accessibilityLabel(Text("Stop generating", comment: "VoiceOver label for the stop button"))
             .accessibilityHint(Text("Stops the reply that is being generated", comment: "VoiceOver hint for the stop button"))
         } else {
             Button { performSend() } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.system(size: 34))
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 17, weight: .semibold))
                     .foregroundStyle(canSend ? ChatColors.sendButton : ChatColors.sendButtonDisabled)
+                    .glassCircleControl(diameter: Self.sendButtonDiameter)
             }
+            .buttonStyle(GlassChipButtonStyle())
             .disabled(!canSend)
             .keyboardShortcut(.return, modifiers: .command)
             .accessibilityLabel(Text("Send", comment: "VoiceOver label for the send button"))
@@ -3573,19 +3583,38 @@ struct AIChatView: View {
     /// exactly what we're overriding once the user has resized. So the two
     /// modes are separate branches rather than modifiers stacked on one view.
     private func composerBody(field: PastableTextView, topPadding: CGFloat) -> some View {
-        Group {
-            if let height = composerTextHeight {
-                field.frame(height: height)
-            } else {
-                field.fixedSize(horizontal: false, vertical: true)
+        HStack(alignment: .center, spacing: 8) {
+            Group {
+                if let height = composerTextHeight {
+                    field.frame(height: height)
+                } else {
+                    field.fixedSize(horizontal: false, vertical: true)
+                }
             }
+            // Two lines minimum: the field opens at the height the send button
+            // is centred against, instead of starting at one line and growing
+            // the whole card on the first keystroke. Top-aligned so text starts
+            // at the top of the box as it grows past the floor.
+            .frame(minHeight: Self.composerTwoLineHeight, alignment: .topLeading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+
+            sendButton
         }
-        .padding(.horizontal, 16)
+        .padding(.leading, 16)
+        .padding(.trailing, 12)
         .padding(.top, topPadding)
         .padding(.bottom, 10)
         .overlay(alignment: .top) {
             if composerResizeEnabled { composerResizeHandle }
         }
+    }
+
+    /// Two lines of the composer font — the field's floor, and the box the send
+    /// button centres against. Derived from the same font the text view uses
+    /// (ChatInputBar's `scaledChatInput(16.5)`) so it tracks Dynamic Type
+    /// instead of being a hardcoded point value.
+    private static var composerTwoLineHeight: CGFloat {
+        UIFont.systemFont(ofSize: FontSettings.shared.scaledChatInput(16.5)).lineHeight * 2
     }
 
     /// The grab affordance. Dragging UP makes the composer taller, so the drag
@@ -4690,19 +4719,35 @@ struct AIChatView: View {
 /// fill and BOTH shadows byte-for-byte, including the dark-mode-only top shadow
 /// that lifts the bar off the message list.
 private struct ComposerSurface: ViewModifier {
-    private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 20, style: .continuous)
+    /// Corner radius floor for the glass shape. `.concentric` derives the real
+    /// radius from the container so the card stays concentric with whatever
+    /// holds it; the minimum only guarantees it never collapses to a sharp rect.
+    private static let cornerMinimum: CGFloat = 20
+
+    /// The shape on the pre-iOS-26 path, which cannot use `ConcentricRectangle`.
+    private var legacyShape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: Self.cornerMinimum, style: .continuous)
     }
 
     func body(content: Content) -> some View {
         if #available(iOS 26.0, *) {
-            content
-                .glassEffect(.regular, in: shape)
-                .clipShape(shape)
+            // One container for the card glass AND every chip sitting on it.
+            // Without it the two layers refract each other and the card goes
+            // murky wherever a chip overlaps; `spacing: 4` keeps the chips from
+            // melting into the card face — the Swiftchat §3.2 finding. The
+            // chips live inside `content`, so they are collected here rather
+            // than each needing its own container.
+            GlassEffectContainer(spacing: 4) {
+                content
+                    // `.interactive()` — without it the card is inert glass: no
+                    // press response when tapping to focus the field.
+                    .glassEffect(.regular.interactive(), in: .rect(corners: .concentric(minimum: .fixed(Self.cornerMinimum))))
+                    .clipShape(.rect(corners: .concentric(minimum: .fixed(Self.cornerMinimum))))
+            }
         } else {
             content
-                .background(shape.fill(ChatColors.inputBg))
-                .clipShape(shape)
+                .background(legacyShape.fill(ChatColors.inputBg))
+                .clipShape(legacyShape)
                 .shadow(color: Color.black.opacity(0.12), radius: 8, x: 0, y: 2)
                 .shadow(color: Color(UIColor { $0.userInterfaceStyle == .dark ? UIColor(white: 0, alpha: 0.5) : UIColor(white: 0, alpha: 0) }), radius: 8, x: 0, y: -4)
         }
