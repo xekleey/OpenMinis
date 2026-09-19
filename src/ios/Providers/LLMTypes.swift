@@ -857,7 +857,7 @@ enum ThinkingLevel: String, Codable, Hashable, CaseIterable, Comparable {
         case .low: return "Low"
         case .medium: return "Med"
         case .high: return "High"
-        case .xhigh: return "XHigh"
+        case .xhigh: return "Xhigh"
         case .max: return "Max"
         case .ultra: return "Ultra"
         }

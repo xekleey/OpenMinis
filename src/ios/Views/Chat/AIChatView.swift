@@ -3179,7 +3179,10 @@ struct AIChatView: View {
         // announce the same thing; otherwise VoiceOver reads "plus".
         let icon = Image(systemName: "plus")
             .font(.system(size: 18, weight: .medium))
-            .foregroundStyle(ChatColors.secondaryText)
+            // primaryText, not secondaryText: the 60% grey these controls used
+            // reads muddy on Liquid Glass and disagrees with the send arrow
+            // next to them, which is already `label`.
+            .foregroundStyle(ChatColors.primaryText)
             .accessibilityLabel(Text("Add attachment", comment: "VoiceOver label for the attachment button"))
             .glassCircleControl()
 
@@ -3265,7 +3268,7 @@ struct AIChatView: View {
                     Text(level.displayName)
                         .font(.system(size: 13, weight: .medium))
                 }
-                .foregroundStyle(ChatColors.secondaryText)
+                .foregroundStyle(ChatColors.primaryText)
                 .glassChip()
             }
             .menuStyle(.button)
@@ -3363,7 +3366,7 @@ struct AIChatView: View {
             Text("/")
                 .font(.system(size: 18, weight: .semibold, design: .rounded))
                 .italic()
-                .foregroundStyle(ChatColors.secondaryText)
+                .foregroundStyle(ChatColors.primaryText)
                 .glassCircleControl()
         }
         .buttonStyle(GlassChipButtonStyle())
