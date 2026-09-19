@@ -3222,10 +3222,65 @@ struct AIChatView: View {
                 readAloudToolbarToggle
                 Spacer()
             }
-            micButtonContainer
+            thinkingLevelMenuButton
             sendButton
         }
         return AnyView(row)
+    }
+
+    /// Thinking-intensity control, in the slot the mic button used to occupy.
+    ///
+    /// A `Menu` rather than the nav-bar badge's sheet: the composer is where the
+    /// level actually gets chosen, so one tap beats two. Options come from
+    /// `availableThinkingLevels`, which is the model's DECLARED set and can be
+    /// sparse — a model declaring ["high","max"] offers only High and Max, so
+    /// don't rebuild a ladder here. Hidden entirely for non-reasoning models,
+    /// where the level is pinned to Off and the control would be a dead end.
+    ///
+    /// Replaces `micButtonContainer`. Voice input now has no entry point from
+    /// the composer (that button was the only writer of `voiceInputActive`),
+    /// so the voice branches above are unreachable but left intact.
+    @ViewBuilder
+    private var thinkingLevelMenuButton: some View {
+        if vm.currentModelSupportsReasoning {
+            let level = vm.currentThinkingLevel
+            Menu {
+                Picker(selection: thinkingLevelBinding) {
+                    Text(ThinkingLevel.off.displayName).tag(ThinkingLevel.off)
+                    ForEach(vm.availableThinkingLevels, id: \.self) { option in
+                        Text(option.displayName).tag(option)
+                    }
+                } label: {
+                    EmptyView()
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image("ThinkingIcon")
+                        .resizable()
+                        .frame(width: 13, height: 13)
+                        .opacity(level.isEnabled ? 1.0 : 0.4)
+                    Text(level.displayName)
+                        .font(.system(size: 13, weight: .medium))
+                }
+                .foregroundStyle(ChatColors.secondaryText)
+                .padding(.horizontal, 10)
+                .frame(height: 34)
+                .background(ChatColors.inputIconBg)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(ChatColors.inputIconBorder, lineWidth: 0.5))
+            }
+            .accessibilityLabel(Text("Thinking intensity: \(level.displayName)"))
+        }
+    }
+
+    /// Routes the menu's selection through the view model so it clamps to the
+    /// model's ceiling and persists to the session, instead of writing state
+    /// directly.
+    private var thinkingLevelBinding: Binding<ThinkingLevel> {
+        Binding(
+            get: { vm.currentThinkingLevel },
+            set: { vm.setThinkingLevel($0) }
+        )
     }
 
     /// "Read replies aloud" toggle shown centered in the toolbar during voice
