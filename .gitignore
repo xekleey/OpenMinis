@@ -7,6 +7,7 @@ local.properties
 
 # Log/OS Files
 *.log
+.agent
 
 # Android Studio generated files and folders
 captures/
@@ -106,6 +107,13 @@ xcshareddata/xcdebugger/
 
 # Build-time generated Swift (from ProviderCustomization.xcconfig); regenerated each build
 src/ios/Generated/
+
+# ── Local build-time customization — copy from *.example, never commit ──
+# BUILDING.md: these values are injected at build time and are not in this
+# repository. An empty file is valid — the app compiles and runs; only the
+# feature that actually needs a value fails, loudly, at runtime.
+src/ios/Configs/ProviderCustomization.xcconfig
+src/android/app/provider-customization.properties
 
 # Debug-only skill assets staged by scripts/gen_debug_skill_android.sh from
 # .claude/skills/debug-server/; regenerated on every debug build.
